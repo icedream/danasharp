@@ -75,6 +75,8 @@ namespace DanaSharp
         {
             XmlConfiguration = new XmlDocument();
             XmlConfiguration.Load("Settings.xml");
+
+            Console.SetBufferSize(Console.WindowWidth, Console.WindowHeight);
         }
 
         public void LogLine(string line)
