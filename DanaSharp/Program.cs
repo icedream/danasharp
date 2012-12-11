@@ -95,7 +95,7 @@ namespace DanaSharp
             int inpY = Console.CursorTop;
             Console.SetCursorPosition(logX, logY);
             Console.Write(line);
-            if (Console.CursorTop == Console.WindowHeight - 1)
+            if (Console.CursorTop == Console.WindowHeight - 2)
                 Console.WriteLine();
             logX = Console.CursorLeft;
             logY = Console.CursorTop;
@@ -109,10 +109,19 @@ namespace DanaSharp
             Log(string.Format(line, args));
         }
 
+        public static void ClearCurrentConsoleLine()
+        {
+            int currentLineCursor = Console.CursorTop;
+            Console.SetCursorPosition(0, Console.CursorTop);
+            for (int i = 0; i < Console.WindowWidth; i++)
+                Console.Write(" ");
+            Console.SetCursorPosition(0, currentLineCursor);
+        }
+
         public string ReadInputLine()
         {
             Console.CursorLeft = 0;
-            Console.CursorTop = Console.WindowHeight - 1;
+            Console.CursorTop = Console.WindowHeight - 2;
             Console.Write(">");
             ConsoleKeyInfo key;
             StringBuilder s = new StringBuilder();
@@ -127,19 +136,16 @@ namespace DanaSharp
                         if (s.Length == 0)
                             break;
                         s.Remove(s.Length - 1, 1);
-                        if (Console.CursorLeft == Console.WindowWidth - 1)
+                        Console.Write("\r>");
+                        if (s.Length > Console.WindowWidth - 3)
                         {
-                            Console.CursorLeft = 1;
-                            Console.Write(s.ToString().Substring(s.Length - Console.WindowWidth + 2));
-                            int x = Console.CursorLeft, y = Console.CursorTop;
-                            Console.Write(" ");
-                            Console.SetCursorPosition(x, y);
+                            Console.Write(s.ToString().Substring(s.Length - Console.WindowWidth + 3));
                         }
                         else
                         {
-                            Console.Write(key.KeyChar);
-                            Console.Write(" " + key.KeyChar);
+                            Console.Write(s.ToString());
                         }
+                        Console.Write(" " + key.KeyChar);
                         break;
                     default:
                         if (!char.IsSymbol(key.KeyChar) && !char.IsLetterOrDigit(key.KeyChar) && !char.IsWhiteSpace(key.KeyChar) && !char.IsPunctuation(key.KeyChar))
@@ -195,7 +201,7 @@ namespace DanaSharp
                 {
                     case "quit":
                         SendCommand("quit", "Closed via console");
-                        break;
+                        return;
                     case "msg":
                         cmd = "privmsg";
                         goto default;
@@ -531,20 +537,21 @@ namespace DanaSharp
                         SendMessage(target, "The bottle stops...!");
                         Thread.Sleep(800);
                         SendMessage(target, "The bottle is directing to an empty seat.");
-                        break;
                     }
+                    else
+                    {
 
-                    // Get 2 random users, which do something with each other...
-                    var ruser = users.RandomValues().Take(1).First();
+                        // Get 2 random users, which do something with each other...
+                        var ruser = users.RandomValues().Take(1).First();
 
-                    SendMessage(target, "The bottle stops...!");
-                    Thread.Sleep(800);
+                        SendMessage(target, "The bottle stops...!");
+                        Thread.Sleep(800);
 
-                    SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Nickname));
-                    Thread.Sleep(500);
+                        SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Nickname));
+                        Thread.Sleep(500);
 
-                    // Get a random action
-                    string action = new string[] {
+                        // Get a random action
+                        string action = new string[] {
                                         "make out with",
                                         "kiss",
                                         "make love with",
@@ -552,14 +559,15 @@ namespace DanaSharp
                                         "smooch",
                                         "french-kiss"
                                     }.RandomValues().Take(1).First();
-                    
-                    // Random !spin message :>
-                    SendMessage(target, new [] {
-                        string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
-                        string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
-                        string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
-                        string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action)
-                    }.RandomValues().Take(1).First());
+
+                        // Random !spin message :>
+                        SendMessage(target, new[] {
+                            string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
+                            string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
+                            string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
+                            string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action)
+                        }.RandomValues().Take(1).First());
+                    }
 
                     // Deny !spin requests for 3 seconds
                     Task.Factory.StartNew(() =>
