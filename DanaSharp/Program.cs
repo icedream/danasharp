@@ -21,6 +21,9 @@ namespace DanaSharp
 {
     public class DanaScully
     {
+        int logX = 0, logY = 2;
+        ManualResetEventSlim inpLock = new ManualResetEventSlim(true);
+
         public XmlDocument XmlConfiguration { get; set; }
 
         public string Server { get { return XmlConfiguration.SelectSingleNode("//config/server").InnerText; } }
@@ -42,7 +45,7 @@ namespace DanaSharp
             get
             {
                 return
-                    NickServInfo.Attributes["password"] != null
+                    NickServInfo != null && NickServInfo.Attributes["password"] != null
                     ? NickServInfo.Attributes["password"].Value
                     : null;
             }
@@ -74,16 +77,100 @@ namespace DanaSharp
             XmlConfiguration.Load("Settings.xml");
         }
 
+        public void LogLine(string line)
+        {
+            Log(line + Environment.NewLine);
+        }
+
+        public void LogLine(string line, params object[] args)
+        {
+            LogLine(string.Format(line, args));
+        }
+
+        public void Log(string line)
+        {
+            inpLock.Reset();
+            Console.CursorVisible = false;
+            int inpX = Console.CursorLeft;
+            int inpY = Console.CursorTop;
+            Console.SetCursorPosition(logX, logY);
+            Console.Write(line);
+            if (Console.CursorTop == Console.WindowHeight - 1)
+                Console.WriteLine();
+            logX = Console.CursorLeft;
+            logY = Console.CursorTop;
+            Console.SetCursorPosition(inpX, inpY);
+            Console.CursorVisible = true;
+            inpLock.Set();
+        }
+
+        public void Log(string line, params object[] args)
+        {
+            Log(string.Format(line, args));
+        }
+
+        public string ReadInputLine()
+        {
+            Console.CursorLeft = 0;
+            Console.CursorTop = Console.WindowHeight - 1;
+            Console.Write(">");
+            ConsoleKeyInfo key;
+            StringBuilder s = new StringBuilder();
+            while ((key = Console.ReadKey(true)).Key != ConsoleKey.Enter)
+            {
+                inpLock.Wait();
+                switch(key.Key)
+                {
+                    case ConsoleKey.Enter:
+                        break;
+                    case ConsoleKey.Backspace:
+                        if (s.Length == 0)
+                            break;
+                        s.Remove(s.Length - 1, 1);
+                        if (Console.CursorLeft == Console.WindowWidth - 1)
+                        {
+                            Console.CursorLeft = 1;
+                            Console.Write(s.ToString().Substring(s.Length - Console.WindowWidth + 2));
+                            int x = Console.CursorLeft, y = Console.CursorTop;
+                            Console.Write(" ");
+                            Console.SetCursorPosition(x, y);
+                        }
+                        else
+                        {
+                            Console.Write(key.KeyChar);
+                            Console.Write(" " + key.KeyChar);
+                        }
+                        break;
+                    default:
+                        if (!char.IsSymbol(key.KeyChar) && !char.IsLetterOrDigit(key.KeyChar) && !char.IsWhiteSpace(key.KeyChar) && !char.IsPunctuation(key.KeyChar))
+                            break;
+                        s.Append(key.KeyChar);
+                        if (Console.CursorLeft == Console.WindowWidth - 1)
+                        {
+                            Console.CursorLeft = 1;
+                            Console.Write(s.ToString().Substring(s.Length - Console.WindowWidth + 2));
+                        }
+                        else
+                            Console.Write(key.KeyChar);
+                        break;
+                }
+            }
+            Console.CursorLeft = 1;
+            for(int i = Console.CursorLeft; i < Console.WindowWidth - 1; i++)
+                Console.Write(" ");
+            return s.ToString();
+        }
+
         public void Start()
         {
-            Console.WriteLine("Connecting...");
+            LogLine("Connecting...");
             sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             sock.Connect(Server, Port);
             ns = new NetworkStream(sock);
             sr = new StreamReader(ns);
             sw = new StreamWriter(ns);
 
-            Console.WriteLine("Logging in...");
+            LogLine("Logging in...");
             if(Password != null)
                 sw.WriteLine("PASS :{0}", Password);
             sw.WriteLine("NICK {0}", Nickname);
@@ -91,14 +178,39 @@ namespace DanaSharp
             sw.Flush();
             sw.AutoFlush = true;
 
-            _HandleLines();
+            Task.Factory.StartNew(() => _HandleLines());
+
+            while (sock.Connected)
+            {
+                var line = ReadInputLine();
+                if (line.StartsWith("/"))
+                    line = line.Substring(1);
+
+                var s = line.Split(' ');
+                var cmd = s[0];
+                var args = s.Skip(1);
+                var argline = string.Join(" ", args);
+
+                switch (cmd)
+                {
+                    case "quit":
+                        SendCommand("quit", "Closed via console");
+                        break;
+                    case "msg":
+                        cmd = "privmsg";
+                        goto default;
+                    default:
+                        SendCommand(cmd, args.ToArray<string>());
+                        break;
+                }
+            }
         }
 
         #region Bot basic workers
 
         void _HandleLines()
         {
-            Console.WriteLine("Ready.");
+            LogLine("Ready.");
             while (true)
             {
                 var line = ReadLine();
@@ -112,7 +224,7 @@ namespace DanaSharp
             if (NickServPassword == null)
                 return;
 
-            Console.WriteLine("Identifying via NickServ...");
+            LogLine("Identifying via NickServ...");
             SendMessage("NickServ", "IDENTIFY " + (NickServUsername != null ? NickServUsername + " " : "") + NickServPassword);
         }
 
@@ -131,7 +243,7 @@ namespace DanaSharp
                 chars = args = "";
 
                 channel = modes.Keys.First();
-                Console.WriteLine("Syncing modes in {0}...", channel);
+                LogLine("Syncing modes in {0}...", channel);
                 List<string[]> modesp = modes.Values.First();
 
                 while (modesp.Count > 0)
@@ -331,7 +443,7 @@ namespace DanaSharp
 
         void ParseMessage(string source, string target, string text)
         {
-            Console.WriteLine("<" + source.Split('!').First() + "> => " + target + ": " + text);
+            LogLine("<" + source.Split('!').First() + "> => " + target + ": " + text);
             bool isPublic = target.StartsWith("#");
 
             if (isPublic)
@@ -359,7 +471,7 @@ namespace DanaSharp
 
         void ParsePrivateCommand(string source, string target, string name, string[] arguments)
         {
-            Console.WriteLine("Received private command by {0}: {1} with {2} arguments", source, name, arguments.Count());
+            LogLine("Received private command by {0}: {1} with {2} arguments", source, name, arguments.Count());
             switch (name.ToLower())
             {
                 case "help":
@@ -385,7 +497,7 @@ namespace DanaSharp
 
         void ParseChannelCommand(string source, string target, bool publicOutput, string name, string[] arguments)
         {
-            Console.WriteLine("Received channel command by {0}: {1} with {2} arguments", source, name, arguments.Count());
+            LogLine("Received channel command by {0}: {1} with {2} arguments", source, name, arguments.Count());
             switch (name.ToLower())
             {
                 case "spin":
