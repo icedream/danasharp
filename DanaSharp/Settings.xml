@@ -1,0 +1,24 @@
+﻿<?xml version="1.0"?>
+<config>
+  <!-- Server -->
+  <server>irc.rizon.net</server>
+  <port>6667</port>
+  <!--<ssl>false</ssl>-->
+  <password></password>
+  
+  <!-- Login info -->
+  <nick>DanaSharp</nick>
+  <user>dana</user>
+  <real>For teh lulz :></real>
+  <!--<umodes></umodes>-->
+  
+  <!-- Channels -->
+  <channel name="#Truth?" />
+  <channel name="#icebot" />
+  <channel name="#GlobalWaves" />
+  <channel name="#Icedream" />
+  
+  <!-- NickServ -->
+  <!--<nickserv password="nickserv password here if available" />-->
+  
+</config>
