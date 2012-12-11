@@ -202,9 +202,16 @@ namespace DanaSharp
                     case "quit":
                         SendCommand("quit", "Closed via console");
                         return;
+                    case "notice":
+                        args = new[] { argline };
+                        goto default;
                     case "msg":
                         cmd = "privmsg";
+                        args = new [] { argline };
                         goto default;
+                    case "query":
+                        LogLine("Queries not supported.");
+                        break;
                     default:
                         SendCommand(cmd, args.ToArray<string>());
                         break;
