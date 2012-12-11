@@ -203,11 +203,11 @@ namespace DanaSharp
                         SendCommand("quit", "Closed via console");
                         return;
                     case "notice":
-                        args = new[] { argline };
+                        args = new[] { args.First(), string.Join(" ", args.Skip(1)) };
                         goto default;
                     case "msg":
                         cmd = "privmsg";
-                        args = new [] { argline };
+                        args = new [] { args.First(), string.Join(" ", args.Skip(1)) };
                         goto default;
                     case "query":
                         LogLine("Queries not supported.");
