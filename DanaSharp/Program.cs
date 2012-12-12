@@ -120,6 +120,33 @@ namespace DanaSharp
             Console.SetCursorPosition(0, currentLineCursor);
         }
 
+        public bool IsIgnored(string hostmask)
+        {
+            return GetMatchingIgnoreEntries(hostmask).Length > 0;
+        }
+
+        public bool IsOwner(string hostmask)
+        {
+            return (from owner in GetOwners() where new Hostmask(owner).IsMatch(hostmask) select owner).Count() > 0;
+        }
+
+        public string[] GetOwners()
+        {
+            return (from node in this.XmlConfiguration.SelectNodes("//config/owner").Cast<XmlNode>() select node.InnerText).ToArray<string>();
+        }
+
+        public string[] GetMatchingIgnoreEntries(string hostmask)
+        {
+            var m = (from pattern in GetIgnoreEntries() where new Hostmask(pattern).IsMatch(hostmask) select pattern).ToArray<string>();
+            Debug.WriteLine("Matching ignore entries for {0}: ", hostmask, m.Any() ? string.Join("; ", m) : "<none>");
+            return m;
+        }
+
+        public string[] GetIgnoreEntries()
+        {
+            return (from node in this.XmlConfiguration.SelectNodes("//config/ignore").Cast<XmlNode>() select node.InnerText).ToArray<string>();
+        }
+
         public string ReadInputLine()
         {
             Console.CursorLeft = 0;
@@ -425,6 +452,23 @@ namespace DanaSharp
             return reply;
         }
 
+        void RemoveChannel(string channel)
+        {
+            var n = XmlConfiguration.SelectSingleNode(string.Format("//config/channel[@name='{0}']", channel));
+            if (n != null)
+            {
+                XmlConfiguration.SelectSingleNode("//config").RemoveChild(n);
+                XmlConfiguration.Save("Settings.xml");
+            }
+        }
+
+        void AddChannel(string channel)
+        {
+            var n = XmlConfiguration.SelectNodes("//config").Item(0).AppendChild(XmlConfiguration.CreateElement("channel"));
+            n.Attributes.Append(XmlConfiguration.CreateAttribute("name")).Value = channel;
+            XmlConfiguration.Save("Settings.xml");
+        }
+
         void ParseReply(RawLine reply)
         {
             switch (reply.Reply.ToLower())
@@ -434,14 +478,22 @@ namespace DanaSharp
                     SendCommand("pong", reply.Arguments[0]);
                     break;
                 case "privmsg":
+                    LogLine("<{0} to {1}> {2}", reply.Source.Split('!')[0], reply.Arguments.First(), reply.Arguments.Last());
                     ParseMessage(reply.Source, reply.Arguments[0], reply.Arguments[1]);
+                    break;
+                case "notice":
+                    LogLine("-{0} to {1}- {2}", reply.Source.Split('!')[0], reply.Arguments.First(), reply.Arguments.Last());
+                    break;
+                case "kick":
+                    {
+                        LogLine("Kicked from {0} because {1}", reply.Arguments.First(), reply.Arguments.Last());
+                        RemoveChannel(reply.Arguments.First());
+                    }
                     break;
                 case "invite":
                     {
                         SendCommand("join", reply.Arguments.Last());
-                        var n = XmlConfiguration.SelectNodes("//config").Item(0).AppendChild(XmlConfiguration.CreateElement("channel"));
-                        n.Attributes.Append(XmlConfiguration.CreateAttribute("name")).Value = reply.Arguments.Last();
-                        XmlConfiguration.Save("Settings.xml");
+                        AddChannel(reply.Arguments.First());
                     }
                     break;
                 case "004":
@@ -458,7 +510,9 @@ namespace DanaSharp
 
         void ParseMessage(string source, string target, string text)
         {
-            LogLine("<" + source.Split('!').First() + "> => " + target + ": " + text);
+            if (IsIgnored(source))
+                return;
+
             bool isPublic = target.StartsWith("#");
 
             if (isPublic)
@@ -484,6 +538,11 @@ namespace DanaSharp
             }
         }
 
+        string[] GetChannels()
+        {
+            return (from c in XmlConfiguration.SelectNodes("//config/channel").Cast<XmlNode>() select c.Attributes["name"].Value).ToArray<string>();
+        }
+
         void ParsePrivateCommand(string source, string target, string name, string[] arguments)
         {
             LogLine("Received private command by {0}: {1} with {2} arguments", source, name, arguments.Count());
@@ -491,6 +550,32 @@ namespace DanaSharp
             {
                 case "help":
                     SendNotice(source, string.Format("No help available yet."));
+                    break;
+                case "rehash":
+                    if (!IsOwner(source))
+                    {
+                        SendNotice(source, "You are not an owner of the bot. You need to be owner to do that.");
+                        break;
+                    }
+
+                    SendNotice(source, string.Format("Rehashing..."));
+                    var oldChannels = GetChannels();
+                    XmlConfiguration.Load("Settings.xml");
+                    SendCommand(
+                        "join",
+                        string.Join(
+                            ",",
+                            from c in GetChannels() where !oldChannels.Contains(c, StringComparer.OrdinalIgnoreCase) select c
+                        )
+                    );
+                    SendCommand(
+                        "part",
+                        string.Join(
+                            ",",
+                            from c in oldChannels where !GetChannels().Contains(c, StringComparer.OrdinalIgnoreCase) select c
+                        ),
+                        "Rehash: Channel removed"
+                    );
                     break;
                 case "\x01lag":
                 case "\x01lag\x01":
@@ -534,6 +619,7 @@ namespace DanaSharp
                             !u.IsAway
                             && !u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase)
                             && !u.Nickname.Equals(source.Split('!').First(), StringComparison.OrdinalIgnoreCase)
+                            && !IsIgnored(u.GetHostmask())
                         select u
                     ).ToArray();
 
