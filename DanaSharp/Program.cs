@@ -23,6 +23,25 @@ namespace DanaSharp
     {
         int logX = 0, logY = 2;
         ManualResetEventSlim inpLock = new ManualResetEventSlim(true);
+        List<ChannelData> channels = new List<ChannelData>();
+
+        public ChannelData GetChannel(string channel)
+        {
+            var cdata_query = from c in channels where c.Name.Equals(channel, StringComparison.OrdinalIgnoreCase) select c;
+            if (!cdata_query.Any())
+            {
+                var cdata = new ChannelData(channel);
+                channels.Add(cdata);
+                return cdata;
+            }
+            else
+                return cdata_query.First();
+        }
+
+        public void UnloadChannel(string channel)
+        {
+            channels.Remove(GetChannel(channel));
+        }
 
         public XmlDocument XmlConfiguration { get; set; }
 
@@ -527,9 +546,10 @@ namespace DanaSharp
                     SendAction(target, "spins the bottle...");
 
                     // Get users which are in the current channel. Non-away users, not us.
+                    var who_replies = Who(target).Users;
                     var users = (
                         from u
-                            in Who(target).Users
+                            in who_replies
                         where
                             !u.IsAway
                             && !u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase)
@@ -540,7 +560,6 @@ namespace DanaSharp
                     SendMessage(target, "The bottle is slowing down...!");
                     Thread.Sleep(800);
 
-
                     if (users.Length == 0)
                     {
                         SendMessage(target, "The bottle stops...!");
@@ -549,32 +568,23 @@ namespace DanaSharp
                     }
                     else
                     {
-
-                        // Get 2 random users, which do something with each other...
-                        var ruser = users.RandomValues().Take(1).First();
+                        var ruser = GetChannel(target).RandomSpin(
+                            (from c in who_replies where u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase) select c).First(),
+                            users
+                        );
 
                         SendMessage(target, "The bottle stops...!");
                         Thread.Sleep(800);
 
-                        SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Nickname));
+                        SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Target));
                         Thread.Sleep(500);
-
-                        // Get a random action
-                        string action = new string[] {
-                                        "make out with",
-                                        "kiss",
-                                        "make love with",
-                                        "have sex with",
-                                        "smooch",
-                                        "french-kiss"
-                                    }.RandomValues().Take(1).First();
 
                         // Random !spin message :>
                         SendMessage(target, new[] {
-                            string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
-                            string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
-                            string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action),
-                            string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Nickname, action)
+                            string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action),
+                            string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action),
+                            string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action),
+                            string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action)
                         }.RandomValues().Take(1).First());
                     }
 
