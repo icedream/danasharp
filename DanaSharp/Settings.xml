@@ -20,5 +20,17 @@
   
   <!-- NickServ -->
   <!--<nickserv password="nickserv password here if available" />-->
+
+  <!-- Owner(s) -->
+  <owner>Icedream!*@chocolate.mufffin</owner>
+  <owner>*!*@*blazing.de</owner>
+  
+  <!-- Bots, which are being ignored by !spin -->
+  <ignore>Syntaz!*@*</ignore>
+  <ignore>*!*@rizon.net</ignore>
+  <ignore>*!*@services.rizon.net</ignore>
+  <ignore>*!*@*.bot.*</ignore>
+  <ignore>Sexy!*@*</ignore>
+  <ignore>*!*jies@*.5651C41B.IP</ignore>
   
 </config>

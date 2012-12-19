@@ -37,7 +37,7 @@ namespace DanaSharp
 
             WhoReplyEntry s = new WhoReplyEntry(line.Arguments);
             _users.Add(s);
-            Debug.WriteLine("Feeding WhoReply: Channel {0}, {1}!{2}@{3}", s.Channel, s.Nickname, s.Username, s.Hostname);
+            //Debug.WriteLine("Feeding WhoReply: Channel {0}, {1}!{2}@{3}", s.Channel, s.Nickname, s.Username, s.Hostname);
 
             return true;
         }
