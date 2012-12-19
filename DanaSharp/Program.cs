@@ -655,14 +655,14 @@ namespace DanaSharp
                     else
                     {
                         var ruser = GetChannel(target).RandomSpin(
-                            (from u in who_replies where u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase) select u).First(),
+                            (from u in who_replies where u.Nickname.Equals(source.Split('!').First(), StringComparison.OrdinalIgnoreCase) select u).First(),
                             users
                         );
 
                         SendMessage(target, "The bottle stops...!");
                         Thread.Sleep(800);
 
-                        SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Target));
+                        SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Target.Nickname));
                         Thread.Sleep(500);
 
                         // Random !spin message :>
