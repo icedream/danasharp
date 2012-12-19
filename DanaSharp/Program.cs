@@ -667,10 +667,10 @@ namespace DanaSharp
 
                         // Random !spin message :>
                         SendMessage(target, new[] {
-                            string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action),
-                            string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action),
-                            string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action),
-                            string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", source.Split('!')[0], ruser.Target, ruser.Action)
+                            string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
+                            string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
+                            string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
+                            string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action)
                         }.RandomValues().Take(1).First());
                     }
 
