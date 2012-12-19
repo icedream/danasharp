@@ -45,15 +45,15 @@ namespace DanaSharp
             data.Time = DateTime.UtcNow;
             data.Action = WeightedRandomization.Choose<string>(new [] {
                                 new Weighted<String>("hug", 80),
-                                new Weighted<String>("cuddle with", 70),
-                                new Weighted<String>("give a kiss on the cheek to", 50),
-                                new Weighted<String>("give a kiss on the lips to", 40),
-                                new Weighted<String>("smooch", 35),
-                                new Weighted<String>("french-kiss", 25),
-                                new Weighted<String>("make out with", 22),
-                                new Weighted<String>("go into the closet room with", 15),
-                                new Weighted<String>("make love with", 10),
-                                new Weighted<String>("have sex with", 5)
+                                new Weighted<String>("cuddle with", 80),
+                                new Weighted<String>("give a kiss on the cheek to", 70),
+                                new Weighted<String>("give a kiss on the lips to", 70),
+                                new Weighted<String>("smooch", 65),
+                                new Weighted<String>("french-kiss", 60),
+                                new Weighted<String>("make out with", 60),
+                                new Weighted<String>("go into the closet room with", 50),
+                                new Weighted<String>("make love with", 45),
+                                new Weighted<String>("have sex with", 40)
                             });
             return data;
         }
