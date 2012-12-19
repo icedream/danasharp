@@ -655,7 +655,7 @@ namespace DanaSharp
                     else
                     {
                         var ruser = GetChannel(target).RandomSpin(
-                            (from c in who_replies where u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase) select c).First(),
+                            (from u in who_replies where u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase) select u).First(),
                             users
                         );
 

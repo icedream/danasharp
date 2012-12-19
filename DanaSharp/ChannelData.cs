@@ -6,7 +6,7 @@ using DanaSharp.Extensions;
 
 namespace DanaSharp
 {
-    class ChannelData
+    public class ChannelData
     {
         public string Name { get; set; }
         public Queue<SpinData> RecentSpins { get; set; }
@@ -29,7 +29,7 @@ namespace DanaSharp
         }
     }
 
-    class SpinData
+    public class SpinData
     {
         public WhoReplyEntry Source { get; set; }
         public WhoReplyEntry Target { get; set; }
