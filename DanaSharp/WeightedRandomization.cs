@@ -21,17 +21,13 @@ namespace DanaSharp
 
             foreach (var obj in list)
             {
-                for (int i = sum; i < obj.Weight + sum; i++)
-                {
-                    if (i >= choice)
-                    {
-                        return obj.Value;
-                    }
-                }
                 sum += obj.Weight;
+                Console.WriteLine("Choice is {0}, Sum current is {1}/{2}, obj.Value is {3}", choice, sum, totalweight, obj.Value);
+                if (choice < sum)
+                    return obj.Value;
             }
 
-            return list.First().Value;
+            return default(T);
         }
     }
 
@@ -48,6 +44,7 @@ namespace DanaSharp
         public Weighted(T value, int weight)
         {
             this.Value = value;
+            this.Weight = weight;
         }
     }
 }
