@@ -17,7 +17,7 @@ namespace DanaSharp
             {
                 var cspin = SpinData.Randomize(source, entries);
                 RecentSpins.Enqueue(cspin);
-                while (RecentSpins.Count > entries.Length - 1)
+                while (RecentSpins.Count > 5)
                     RecentSpins.Dequeue();
                 return cspin;
             }

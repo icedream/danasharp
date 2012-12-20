@@ -622,7 +622,7 @@ namespace DanaSharp
                 case "recentspins":
                     lock (GetChannel(target).RecentSpins)
                     {
-                        SendNotice(source.Split('!')[0], "\x02Recent spins:\x02");
+                        SendNotice(source.Split('!')[0], "\x02Recent spins in " + target + ":\x02");
                         if (GetChannel(target).RecentSpins.Count > 0)
                         {
                             foreach (var spin in GetChannel(target).RecentSpins.Reverse().Take(5))
