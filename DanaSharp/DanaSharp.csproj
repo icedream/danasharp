@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="ChannelData.cs" />
     <Compile Include="Extensions\Random.cs" />
+    <Compile Include="Extensions\TimeSpanExtensions.cs" />
     <Compile Include="Hostmask.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

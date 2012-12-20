@@ -12,11 +12,12 @@ namespace DanaSharp
         public Queue<SpinData> RecentSpins { get; set; }
         public SpinData RandomSpin(WhoReplyEntry source, WhoReplyEntry[] entries)
         {
+            entries = (from e in entries where !RecentSpins.Select(f => f.Target).Contains(e) select e).ToArray<WhoReplyEntry>();
             lock (RecentSpins)
             {
                 var cspin = SpinData.Randomize(source, entries);
                 RecentSpins.Enqueue(cspin);
-                while (RecentSpins.Count > 5)
+                while (RecentSpins.Count > entries.Length - 1)
                     RecentSpins.Dequeue();
                 return cspin;
             }

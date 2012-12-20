@@ -619,67 +619,85 @@ namespace DanaSharp
             LogLine("Received channel command by {0}: {1} with {2} arguments", source, name, arguments.Count());
             switch (name.ToLower())
             {
+                case "recentspins":
+                    lock (GetChannel(target).RecentSpins)
+                    {
+                        SendNotice(source.Split('!')[0], "\x02Recent spins:\x02");
+                        if (GetChannel(target).RecentSpins.Count > 0)
+                        {
+                            foreach (var spin in GetChannel(target).RecentSpins.Reverse().Take(5))
+                            {
+                                SendNotice(source.Split('!')[0], string.Format(
+                                    "  \x02{0}\x02 had to {1} \x02{2}\x02 about {3} ago",
+                                    spin.Source.Nickname,
+                                    spin.Action,
+                                    spin.Target.Nickname,
+                                    spin.Interval.ToText()
+                                ));
+                            }
+                        }
+                        else
+                        {
+                            SendNotice(source.Split('!')[0], "  <none>");
+                        }
+                    }
+                    break;
                 case "spin":
-                    if (spinLock.IsSet)
+                    lock (GetChannel(target).RecentSpins)
                     {
-                        SendNotice(source.Split('!')[0], "Denied, wait a few seconds.");
-                        break;
-                    }
+                        var rs = GetChannel(target).RecentSpins;
+                        if (rs.Any() && rs.Last().Interval.TotalSeconds < 5)
+                        {
+                            SendNotice(source.Split('!')[0], string.Format("Denied, wait another {0} seconds.", Math.Round(5 - rs.Last().Interval.TotalSeconds, 0)));
+                            break;
+                        }
 
-                    spinLock.Set();
+                        SendAction(target, "spins the bottle...");
 
-                    SendAction(target, "spins the bottle...");
+                        // Get users which are in the current channel. Non-away users, not us.
+                        var who_replies = Who(target).Users;
+                        var users = (
+                            from u
+                                in who_replies
+                            where
+                                !u.IsAway
+                                && !u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase)
+                                && !u.Nickname.Equals(source.Split('!').First(), StringComparison.OrdinalIgnoreCase)
+                                && !IsIgnored(u.GetHostmask())
+                            select u
+                        ).ToArray();
 
-                    // Get users which are in the current channel. Non-away users, not us.
-                    var who_replies = Who(target).Users;
-                    var users = (
-                        from u
-                            in who_replies
-                        where
-                            !u.IsAway
-                            && !u.Nickname.Equals(this.Nickname, StringComparison.OrdinalIgnoreCase)
-                            && !u.Nickname.Equals(source.Split('!').First(), StringComparison.OrdinalIgnoreCase)
-                            && !IsIgnored(u.GetHostmask())
-                        select u
-                    ).ToArray();
-
-                    SendMessage(target, "The bottle is slowing down...!");
-                    Thread.Sleep(800);
-
-                    if (users.Length == 0)
-                    {
-                        SendMessage(target, "The bottle stops...!");
-                        Thread.Sleep(800);
-                        SendMessage(target, "The bottle is directing to an empty seat.");
-                    }
-                    else
-                    {
-                        var ruser = GetChannel(target).RandomSpin(
-                            (from u in who_replies where u.Nickname.Equals(source.Split('!').First(), StringComparison.OrdinalIgnoreCase) select u).First(),
-                            users
-                        );
-
-                        SendMessage(target, "The bottle stops...!");
+                        SendMessage(target, "The bottle is slowing down...!");
                         Thread.Sleep(800);
 
-                        SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Target.Nickname));
-                        Thread.Sleep(500);
+                        if (users.Length == 0)
+                        {
+                            SendMessage(target, "The bottle stops...!");
+                            Thread.Sleep(800);
+                            SendMessage(target, "The bottle is directing to an empty seat.");
+                        }
+                        else
+                        {
+                            var ruser = GetChannel(target).RandomSpin(
+                                (from u in who_replies where u.Nickname.Equals(source.Split('!').First(), StringComparison.OrdinalIgnoreCase) select u).First(),
+                                users
+                            );
 
-                        // Random !spin message :>
-                        SendMessage(target, new[] {
+                            SendMessage(target, "The bottle stops...!");
+                            Thread.Sleep(800);
+
+                            SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Target.Nickname));
+                            Thread.Sleep(500);
+
+                            // Random !spin message :>
+                            SendMessage(target, new[] {
                             string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
                             string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
                             string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
                             string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action)
                         }.RandomValues().Take(1).First());
+                        }
                     }
-
-                    // Deny !spin requests for 3 seconds
-                    Task.Factory.StartNew(() =>
-                    {
-                        Thread.Sleep(3000);
-                        spinLock.Reset();
-                    });
                     break;
             }
         }
