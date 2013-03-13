@@ -14,7 +14,20 @@ namespace DanaSharp
         public Hostmask(string hostmask)
         {
             this.hostmask = hostmask;
-            this.regex = new Regex("^" + hostmask.Replace("?", ".?").Replace("*", ".*") + "$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            this.regex = new Regex("^" +
+                hostmask
+                .Replace("\\", "\\\\")
+                .Replace(".", "\\.")
+                .Replace("|", "\\|")
+                .Replace("-", "\\-")
+                .Replace("+", "\\+")
+                .Replace("[", "\\[")
+                .Replace("]", "\\]")
+                .Replace("{", "\\{")
+                .Replace("}", "\\}")
+                .Replace("?", ".?")
+                .Replace("*", ".*")
+                + "$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
         }
 
         public bool IsMatch(string hostmask)

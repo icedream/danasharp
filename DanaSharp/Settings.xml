@@ -27,10 +27,22 @@
   
   <!-- Bots, which are being ignored by !spin -->
   <ignore>Syntaz!*@*</ignore>
+  <ignore>kk!k@k.k</ignore>
   <ignore>*!*@rizon.net</ignore>
   <ignore>*!*@services.rizon.net</ignore>
   <ignore>*!*@*.bot.*</ignore>
+  <ignore>*!*@*.bot</ignore>
   <ignore>Sexy!*@*</ignore>
   <ignore>*!*jies@*.5651C41B.IP</ignore>
+  <ignore>*!Cyber@Lets.Cyber.Baby</ignore>
+  <ignore>FlufferCraft!*@*</ignore>
+  <ignore>ascii!*@*</ignore>
+  <ignore>System!*@*</ignore>
+  <ignore>*|Off!*@*</ignore>
+  <ignore>*[AFK]!*@*</ignore>
+  <ignore>*away!*@*</ignore>
+  <ignore>*offline!*@*</ignore>
+  <ignore>ChanStat!*@*</ignore>
+  <ignore>Fluffers!*@*</ignore>
   
 </config>

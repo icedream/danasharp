@@ -27,6 +27,7 @@ namespace DanaSharp
 
         public ChannelData GetChannel(string channel)
         {
+            Debug.WriteLine("GetChannel: {0}", channel, null);
             var cdata_query = from c in channels where c.Name.Equals(channel, StringComparison.OrdinalIgnoreCase) select c;
             if (!cdata_query.Any())
             {
@@ -40,6 +41,7 @@ namespace DanaSharp
 
         public void UnloadChannel(string channel)
         {
+            Debug.WriteLine("UnloadChannel: {0}", channel, null);
             channels.Remove(GetChannel(channel));
         }
 
@@ -157,7 +159,7 @@ namespace DanaSharp
         public string[] GetMatchingIgnoreEntries(string hostmask)
         {
             var m = (from pattern in GetIgnoreEntries() where new Hostmask(pattern).IsMatch(hostmask) select pattern).ToArray<string>();
-            Debug.WriteLine("Matching ignore entries for {0}: ", hostmask, m.Any() ? string.Join("; ", m) : "<none>");
+            Debug.WriteLine("Matching ignore entries for {0}: {1}", hostmask, m.Any() ? string.Join("; ", m) : "<none>");
             return m;
         }
 
@@ -260,6 +262,13 @@ namespace DanaSharp
                     case "query":
                         LogLine("Queries not supported.");
                         break;
+                    case "channels":
+                        LogLine("I am currently in {0} channels", channels.Count);
+                        foreach (var channel in channels)
+                        {
+                            LogLine(" => {0}", channel.Name);
+                        }
+                        break;
                     default:
                         SendCommand(cmd, args.ToArray<string>());
                         break;
@@ -272,11 +281,20 @@ namespace DanaSharp
         void _HandleLines()
         {
             LogLine("Ready.");
-            while (true)
+            try
             {
-                var line = ReadLine();
-                ParseReply(line);
-                SyncModes();
+                while (true)
+                {
+                    var line = ReadLine();
+                    ParseReply(line);
+                    SyncModes();
+                }
+            }
+            catch (Exception error)
+            {
+                LogLine("ERROR IN RECEIVE THREAD:");
+                Log(error.ToString());
+                throw error;
             }
         }
 
@@ -473,6 +491,7 @@ namespace DanaSharp
 
         void RemoveChannel(string channel)
         {
+            Debug.WriteLine("RemoveChannel: {0}", channel, null);
             var n = XmlConfiguration.SelectSingleNode(string.Format("//config/channel[@name='{0}']", channel));
             if (n != null)
             {
@@ -483,6 +502,7 @@ namespace DanaSharp
 
         void AddChannel(string channel)
         {
+            Debug.WriteLine("AddChannel: {0}", channel, null);
             var n = XmlConfiguration.SelectNodes("//config").Item(0).AppendChild(XmlConfiguration.CreateElement("channel"));
             n.Attributes.Append(XmlConfiguration.CreateAttribute("name")).Value = channel;
             XmlConfiguration.Save("Settings.xml");
@@ -505,21 +525,33 @@ namespace DanaSharp
                     break;
                 case "kick":
                     {
-                        LogLine("Kicked from {0} because {1}", reply.Arguments.First(), reply.Arguments.Last());
-                        RemoveChannel(reply.Arguments.First());
+                        if (reply.Arguments[1].Split(',').Contains(Nickname, StringComparer.OrdinalIgnoreCase))
+                            RemoveChannel(reply.Arguments.First());
+                        LogLine("{2} kicked from {0} because {1}", reply.Arguments.First(), reply.Arguments.Last(), reply.Arguments[1]);
                     }
                     break;
                 case "invite":
                     {
+                        LogLine("Invited to {0}", reply.Arguments.Last());
                         SendCommand("join", reply.Arguments.Last());
-                        AddChannel(reply.Arguments.First());
+                        AddChannel(reply.Arguments[1]);
                     }
                     break;
                 case "004":
                     {
+                        LogLine("Registered to server.");
                         _NickServLogin();
                         SendCommand("join", string.Join(",", from n in XmlConfiguration.SelectNodes("//config/channel").Cast<XmlNode>() select n.Attributes["name"].Value));
                     }
+                    break;
+                case "join":
+                    GetChannel(reply.Arguments.First());
+                    LogLine("{0} joined {1}", reply.Source, reply.Arguments.First());
+                    break;
+                case "part":
+                    if (reply.Source.Split('!').First() == Nickname)
+                        RemoveChannel(reply.Arguments.First());
+                    LogLine("{0} left {1}", reply.Source, reply.Arguments.First());
                     break;
                 default:
                     // Ignoring
@@ -530,7 +562,10 @@ namespace DanaSharp
         void ParseMessage(string source, string target, string text)
         {
             if (IsIgnored(source))
+            {
+                Debug.WriteLine("On Ignore: {0}", source);
                 return;
+            }
 
             bool isPublic = target.StartsWith("#");
 
@@ -543,6 +578,7 @@ namespace DanaSharp
                     string[] spl = text.Split(' ');
                     string name = spl[0].Substring(1);
                     string[] arguments = spl.Skip(1).ToArray<string>();
+                    Debug.WriteLine("ParseMessage: Channel Command: {0}, {1} -- {2}", source, target, text);
                     ParseChannelCommand(source, target, text.StartsWith("@"), name, arguments);
                 }
             }
@@ -553,6 +589,7 @@ namespace DanaSharp
                 string[] spl = text.Split(' ');
                 string name = spl[0];
                 string[] arguments = spl.Skip(1).ToArray<string>();
+                Debug.WriteLine("ParseMessage: Private Command: {0}, {1} -- {2}", source, target, text);
                 ParsePrivateCommand(source, target, name, arguments);
             }
         }
@@ -578,7 +615,7 @@ namespace DanaSharp
                     }
 
                     SendNotice(source, string.Format("Rehashing..."));
-                    var oldChannels = GetChannels();
+                    var oldChannels = from c in channels select c.Name;
                     XmlConfiguration.Load("Settings.xml");
                     SendCommand(
                         "join",
@@ -641,6 +678,9 @@ namespace DanaSharp
                             SendNotice(source.Split('!')[0], "  <none>");
                         }
                     }
+                    break;
+                case "channels":
+                    SendAction(target, string.Format("is currently in {0} channels", channels.Count));
                     break;
                 case "spin":
                     lock (GetChannel(target).RecentSpins)
