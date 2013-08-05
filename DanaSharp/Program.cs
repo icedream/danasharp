@@ -281,14 +281,21 @@ namespace DanaSharp
         void _HandleLines()
         {
             LogLine("Ready.");
+#if !DEBUG
             try
             {
-                while (true)
+#endif
+                while (sock.Connected)
                 {
                     var line = ReadLine();
+                    if (line == null)
+                    {
+                        continue;
+                    }
                     ParseReply(line);
                     SyncModes();
                 }
+#if !DEBUG
             }
             catch (Exception error)
             {
@@ -296,6 +303,8 @@ namespace DanaSharp
                 Log(error.ToString());
                 throw error;
             }
+#endif
+            LogLine("Disconnected.");
         }
 
         void _NickServLogin()
@@ -380,6 +389,8 @@ namespace DanaSharp
         RawLine ReadLine()
         {
             string line = sr.ReadLine();
+            if (line == null)
+                return null;
             Debug.WriteLine("RECV: " + line);
             return new RawLine(line);
         }
@@ -707,13 +718,10 @@ namespace DanaSharp
                             select u
                         ).ToArray();
 
-                        SendMessage(target, "The bottle is slowing down...!");
                         Thread.Sleep(800);
 
                         if (users.Length == 0)
                         {
-                            SendMessage(target, "The bottle stops...!");
-                            Thread.Sleep(800);
                             SendMessage(target, "The bottle is directing to an empty seat.");
                         }
                         else
@@ -723,18 +731,12 @@ namespace DanaSharp
                                 users
                             );
 
-                            SendMessage(target, "The bottle stops...!");
-                            Thread.Sleep(800);
-
-                            SendMessage(target, string.Format("It lands on \x02{0}\x02!", ruser.Target.Nickname));
-                            Thread.Sleep(500);
-
                             // Random !spin message :>
                             SendMessage(target, new[] {
-                            string.Format("\x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
-                            string.Format("\x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
-                            string.Format("\x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
-                            string.Format("\x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action)
+                            string.Format("The bottle stopped... \x03{0}\x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
+                            string.Format("The bottle stopped... \x03{0}It's time for \x02{1}\x02 to {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
+                            string.Format("The bottle stopped... \x03{0}Now, \x02{1}\x02, go and {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action),
+                            string.Format("The bottle stopped... \x03{0}Alright, \x02{1}\x02 must {3} \x02{2}\x02!", "04", ruser.Source.Nickname, ruser.Target.Nickname, ruser.Action)
                         }.RandomValues().Take(1).First());
                         }
                     }
