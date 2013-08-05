@@ -7,15 +7,15 @@ namespace DanaSharp.Extensions
 {
     public static class RandomExtensions
     {
+        static Random rand = new Random();
+
         public static IEnumerable<TValue> RandomValues<TKey, TValue>(this IDictionary<TKey, TValue> dict)
         {
-            Random rand = new Random();
             return Enumerable.ToList(dict.Values).RandomValues();
         }
 
         public static IEnumerable<TValue> RandomValues<TValue>(this IList<TValue> values)
         {
-            Random rand = new Random();
             int size = values.Count;
             while (true)
             {
